@@ -1,0 +1,36 @@
+---
+- name: Gather Package Facts
+  package_facts:
+    manager: auto
+
+- block:
+    - name: Import Redis APT Key
+      apt_key:
+        url: https://packages.redis.io/gpg
+        state: present
+  
+    - name: Add Redis Repository
+      apt_repository:
+        repo: deb https://packages.redis.io/deb "{{ ansible_distribution_release }}" main
+        state: present
+        update_cache: yes
+
+    - name: Install Redis
+      apt:
+        name: redis
+        state: present
+  when: '"redis-server" not in ansible_facts.packages'
+
+- name: Start Redis
+  service:
+    name: redis-server
+    state: started
+    enabled: true
+
+- name: Copy Redis Configuration
+  copy: 
+    src: redis.conf
+    dest: /etc/redis/redis.conf
+  become: yes
+  notify:
+    - Restart Redis
